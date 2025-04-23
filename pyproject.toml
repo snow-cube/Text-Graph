@@ -1,0 +1,10 @@
+[project]
+name = "text-graph"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dash>=3.0.3",
+    "dash-cytoscape>=1.0.2",
+]
