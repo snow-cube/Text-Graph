@@ -2,9 +2,9 @@ import sys
 import dash
 from dash import html, dcc
 import dash_cytoscape as cyto
-from graph_utils import TextGraph
+from text_graph import TextGraph
 from style_utils import get_base_stylesheet
-from callbacks import register_callbacks
+from register_callbacks import register_callbacks
 
 # ==== 启动时检查是否提供文件路径 ====
 initial_text = ""
@@ -88,8 +88,8 @@ app.layout = html.Div(
                                 "selected_nodes": [],
                                 "bridge_words": [],
                                 "highlighted_edges": [],
-                                "base_style_applied": True
-                            }
+                                "base_style_applied": True,
+                            },
                         ),
                     ],
                     style={
@@ -166,31 +166,7 @@ app.layout = html.Div(
                             },
                         ),
                         html.H3(
-                            "节点详细信息",
-                            style={
-                                "textAlign": "center",
-                                "marginTop": "0px",
-                                "marginBottom": "10px",
-                                "color": "#0077B6",
-                                "fontWeight": "bold",
-                                "letterSpacing": "2px",
-                            },
-                        ),
-                        html.Div(
-                            id="node-info",
-                            style={
-                                "border": "1px solid #ddd",
-                                "padding": "18px 15px",
-                                "borderRadius": "7px",
-                                "backgroundColor": "#f9f9f9",
-                                "minHeight": "540px",
-                                "margin": "0px 0",
-                                "overflowY": "auto",
-                                "boxShadow": "0 1px 6px #e0e0e0",
-                            },
-                        ),
-                        html.H3(
-                            "桥接词查询",
+                            "桥接词/最短路查询",
                             style={
                                 "textAlign": "center",
                                 "marginTop": "18px",
@@ -199,6 +175,29 @@ app.layout = html.Div(
                                 "fontWeight": "bold",
                                 "letterSpacing": "2px",
                             },
+                        ),
+                        # 新增：模式切换控件
+                        html.Div(
+                            [
+                                dcc.RadioItems(
+                                    id="query-mode-switch",
+                                    options=[
+                                        {"label": "桥接词", "value": "bridge"},
+                                        {"label": "最短路", "value": "shortest"},
+                                    ],
+                                    value="bridge",
+                                    labelStyle={
+                                        "display": "inline-block",
+                                        "marginRight": "18px",
+                                        "fontSize": "16px",
+                                    },
+                                    style={
+                                        "marginBottom": "10px",
+                                        "textAlign": "center",
+                                    },
+                                ),
+                            ],
+                            style={"textAlign": "center", "marginBottom": "8px"},
                         ),
                         html.Div(
                             [
@@ -215,9 +214,9 @@ app.layout = html.Div(
                                     style={"width": "40%", "marginRight": "8px"},
                                 ),
                                 html.Button(
-                                    "查询桥接词",
                                     id="bridge-query-btn",
                                     n_clicks=0,
+                                    children="查询",
                                     style={
                                         "fontSize": "15px",
                                         "padding": "6px 16px",
@@ -249,6 +248,30 @@ app.layout = html.Div(
                                 "color": "#388e3c",
                                 "fontSize": "15px",
                                 "textAlign": "center",
+                            },
+                        ),
+                        html.H3(
+                            "节点详细信息",
+                            style={
+                                "textAlign": "center",
+                                "marginTop": "0px",
+                                "marginBottom": "10px",
+                                "color": "#0077B6",
+                                "fontWeight": "bold",
+                                "letterSpacing": "2px",
+                            },
+                        ),
+                        html.Div(
+                            id="node-info",
+                            style={
+                                "border": "1px solid #ddd",
+                                "padding": "18px 15px",
+                                "borderRadius": "7px",
+                                "backgroundColor": "#f9f9f9",
+                                "minHeight": "540px",
+                                "margin": "0px 0",
+                                "overflowY": "auto",
+                                "boxShadow": "0 1px 6px #e0e0e0",
                             },
                         ),
                     ],
