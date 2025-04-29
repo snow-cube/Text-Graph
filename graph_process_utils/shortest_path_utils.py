@@ -1,7 +1,9 @@
 from text_graph import TextGraph
 
 
-def process_shortest_path(word1, word2, text_graph, style_state, is_graph_displayed=True):
+def process_shortest_path(
+    word1, word2, text_graph, style_state, is_graph_displayed=True
+):
     """处理最短路径的通用函数"""
     if isinstance(text_graph, str):
         tg = TextGraph(text_graph or "")
@@ -10,6 +12,17 @@ def process_shortest_path(word1, word2, text_graph, style_state, is_graph_displa
 
     if not word1 or not word2 or word1 == word2:
         return [], f"请提供两个不同的单词", style_state
+
+    # 检查单词是否存在于图中
+    word1_exists = word1.lower() in tg.nodes
+    word2_exists = word2.lower() in tg.nodes
+
+    if not word1_exists and not word2_exists:
+        return [], f"单词 '{word1}' 和 '{word2}' 都不存在于图中", style_state
+    elif not word1_exists:
+        return [], f"单词 '{word1}' 不存在于图中", style_state
+    elif not word2_exists:
+        return [], f"单词 '{word2}' 不存在于图中", style_state
 
     # Always calculate the shortest path result
     path, total_weight = (

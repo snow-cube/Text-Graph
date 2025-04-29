@@ -2,6 +2,10 @@ from dash import Output, Input, State, html
 import dash
 from graph_process_utils.bridge_utils import process_bridge_words
 from graph_process_utils.shortest_path_utils import process_shortest_path
+from message_templates import (
+    welcome_message, warning_message, node_info_message,
+    bridge_result_message, shortest_path_result_message
+)
 
 
 def register_node_click_callback(app):
@@ -11,7 +15,6 @@ def register_node_click_callback(app):
             Output("style-store", "data", allow_duplicate=True),
             Output("bridge-word1", "value", allow_duplicate=True),
             Output("bridge-word2", "value", allow_duplicate=True),
-            Output("bridge-result", "children", allow_duplicate=True),
         ],
         [Input("cytoscape", "tapNodeData")],
         [
@@ -19,18 +22,28 @@ def register_node_click_callback(app):
             State("cytoscape", "elements"),
             State("graph-store", "data"),
             State("query-mode-switch", "value"),
+            State("random-walk-store", "data"),  # Add random walk state
         ],
         prevent_initial_call=True,
     )
-    def handle_node_click(tap_node_data, style_state, elements, graph_text, mode):
+    def handle_node_click(tap_node_data, style_state, elements, graph_text, mode, walk_state):
         if not tap_node_data:
             return (
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
+            )
+
+        # 检查是否处于随机游走状态，如果是则忽略点击
+        if walk_state and walk_state.get("is_active", False):
+            return (
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
                 dash.no_update,
             )
+
         clicked_word = tap_node_data["label"]
         selected_nodes = style_state.get("selected_nodes", [])
         if clicked_word in selected_nodes:
@@ -41,15 +54,18 @@ def register_node_click_callback(app):
         if len(selected_nodes) == 2:
             w1, w2 = selected_nodes
             if mode == "shortest":
-                path, msg, updated_style = process_shortest_path(
+                path, msg_text, updated_style = process_shortest_path(
                     w1, w2, graph_text, style_state
                 )
-                return dash.no_update, updated_style, w1, w2, msg
+                # 使用模板生成结果
+                return shortest_path_result_message(msg_text), updated_style, w1, w2
             else:
-                bridges, msg, updated_style = process_bridge_words(
+                bridges, msg_text, updated_style = process_bridge_words(
                     w1, w2, graph_text, style_state
                 )
-                return dash.no_update, updated_style, w1, w2, msg
+                # 使用模板生成结果
+                return bridge_result_message(msg_text), updated_style, w1, w2
+
         style_state["bridge_words"] = []
         style_state["shortest_path"] = []
         style_state["highlighted_edges"] = []
@@ -77,72 +93,27 @@ def register_node_click_callback(app):
                                 }
                             )
             style_state["highlighted_edges"] = highlighted_edges
-            info_components = [
-                html.H4(f"单词: {word}", style={"color": "#0077B6"}),
-                html.Hr(),
-                html.Div(
-                    [
-                        html.H5("入边 (前驱词):", style={"color": "#444"}),
-                        (
-                            html.Ul(
-                                [
-                                    html.Li(f"{source} → {word} (权重: {weight})")
-                                    for source, weight in sorted(
-                                        in_edges, key=lambda x: -x[1]
-                                    )
-                                ]
-                            )
-                            if in_edges
-                            else html.P("无入边")
-                        ),
-                    ]
-                ),
-                html.Div(
-                    [
-                        html.H5("出边 (后继词):", style={"color": "#444"}),
-                        (
-                            html.Ul(
-                                [
-                                    html.Li(f"{word} → {target} (权重: {weight})")
-                                    for target, weight in sorted(
-                                        out_edges, key=lambda x: -x[1]
-                                    )
-                                ]
-                            )
-                            if out_edges
-                            else html.P("无出边")
-                        ),
-                    ]
-                ),
-                html.Div(
-                    [
-                        html.H5("统计:", style={"color": "#444"}),
-                        html.P(f"总前驱单词数: {len(in_edges)}"),
-                        html.P(f"总后继单词数: {len(out_edges)}"),
-                        html.P(f"总关联单词数: {len(in_edges) + len(out_edges)}"),
-                    ]
-                ),
-            ]
+
+            # 使用模板生成节点信息
             return (
-                info_components,
+                node_info_message(word, in_edges, out_edges),
                 style_state,
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
             )
         if len(selected_nodes) == 0:
+            # 使用欢迎信息模板
             return (
-                "请点击一个节点查看详细信息或选择两个节点查询桥接词",
+                welcome_message(),
                 style_state,
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
             )
         else:
+            # 使用警告信息模板
             return (
-                "请只选择一个节点查看详情或选择恰好两个节点查询桥接词",
+                warning_message(),
                 style_state,
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
             )

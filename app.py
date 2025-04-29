@@ -1,11 +1,11 @@
 import sys
 import dash
-from dash import html, dcc, Input, Output, State
-import dash_cytoscape as cyto
+from dash import html, dcc
 from text_graph import TextGraph
-from style_utils import get_base_stylesheet
+from styles.basic_style import get_reset_style_state
 from register_callbacks import register_callbacks
 from callbacks.upload import NODE_THRESHOLD
+from message_templates import welcome_message
 
 # ==== 启动时检查是否提供文件路径 ====
 initial_text = ""
@@ -34,12 +34,22 @@ app.layout = html.Div(
         # 新增：将 style-store 移到布局顶层，确保始终存在
         dcc.Store(
             id="style-store",
-            data={
-                "selected_nodes": [],
-                "bridge_words": [],
-                "highlighted_edges": [],
-                "base_style_applied": True,
-            },
+            # data={
+            #     "selected_nodes": [],
+            #     "bridge_words": [],
+            #     "highlighted_edges": [],
+            #     "base_style_applied": True,
+            # },
+            data=get_reset_style_state(),
+        ),
+        # 新增：随机游走状态存储
+        dcc.Store(id="random-walk-store", data={}),
+        # 新增：用于控制随机游走步进的间隔计时器
+        dcc.Interval(
+            id="random-walk-interval",
+            interval=500,  # 每500毫秒更新一次，可以根据需要调整
+            n_intervals=0,
+            disabled=True,
         ),
         html.Div(
             [
@@ -185,17 +195,20 @@ app.layout = html.Div(
                                     type="text",
                                     placeholder="单词1",
                                     style={"width": "40%", "marginRight": "8px"},
+                                    disabled=False,  # 添加初始disabled属性
                                 ),
                                 dcc.Input(
                                     id="bridge-word2",
                                     type="text",
                                     placeholder="单词2",
                                     style={"width": "40%", "marginRight": "8px"},
+                                    disabled=False,  # 添加初始disabled属性
                                 ),
                                 html.Button(
                                     id="bridge-shortest-query-btn",
                                     n_clicks=0,
                                     children="查询",
+                                    disabled=False,  # 添加初始disabled属性
                                     style={
                                         "fontSize": "15px",
                                         "padding": "6px 16px",
@@ -212,25 +225,13 @@ app.layout = html.Div(
                                 "justifyContent": "center",
                                 "alignItems": "center",
                                 "gap": "8px",
-                                "marginBottom": "10px",
+                                "marginBottom": "20px",  # 增加底部间距
                             },
                         ),
-                        html.Div(
-                            id="bridge-result",
-                            style={
-                                "border": "1px solid #b7e4c7",
-                                "backgroundColor": "#f1f8e9",
-                                "borderRadius": "5px",
-                                "padding": "10px",
-                                "marginBottom": "18px",
-                                "minHeight": "36px",
-                                "color": "#388e3c",
-                                "fontSize": "15px",
-                                "textAlign": "center",
-                            },
-                        ),
+                        # 删除 bridge-result div，将结果合并到 node-info
+                        # 注意：node-info 的标题修改为更加通用的名称
                         html.H3(
-                            "节点详细信息",
+                            "节点与查询信息",  # 修改标题为更通用的名称
                             style={
                                 "textAlign": "center",
                                 "marginTop": "0px",
@@ -240,8 +241,49 @@ app.layout = html.Div(
                                 "letterSpacing": "2px",
                             },
                         ),
+                        # 添加随机游走按钮和容器
+                        html.Div(
+                            [
+                                html.Button(
+                                    "开始随机游走",
+                                    id="random-walk-btn",
+                                    n_clicks=0,
+                                    style={
+                                        "fontSize": "15px",
+                                        "padding": "7px 18px",
+                                        "backgroundColor": "#9c27b0",
+                                        "color": "#fff",
+                                        "border": "none",
+                                        "borderRadius": "4px",
+                                        "cursor": "pointer",
+                                        "marginTop": "10px",
+                                        "width": "100%",
+                                    },
+                                ),
+                                html.Button(
+                                    "停止随机游走",
+                                    id="stop-walk-btn",
+                                    n_clicks=0,
+                                    style={
+                                        "display": "none",  # 初始隐藏
+                                        "fontSize": "15px",
+                                        "padding": "7px 18px",
+                                        "backgroundColor": "#e53935",
+                                        "color": "#fff",
+                                        "border": "none",
+                                        "borderRadius": "4px",
+                                        "cursor": "pointer",
+                                        "marginTop": "10px",
+                                        "width": "100%",
+                                    },
+                                ),
+                            ],
+                            id="random-walk-container",
+                            style={"marginBottom": "10px"},
+                        ),
                         html.Div(
                             id="node-info",
+                            children=welcome_message(),  # 设置初始欢迎信息
                             style={
                                 "border": "1px solid #ddd",
                                 "padding": "18px 15px",
@@ -269,151 +311,6 @@ app.layout = html.Div(
     ],
     style={"fontFamily": "Arial, sans-serif", "padding": "10px"},
 )
-
-
-# 重构回调：处理图形显示锁定和切换
-@app.callback(
-    Output("graph-container", "children"),
-    Output("graph-display-state", "data"),
-    Output("style-store", "data"),  # 添加style-store作为输出
-    Output("graph-display-toggle", "value"),  # 添加对切换开关的控制
-    Output("graph-display-toggle", "options"),  # 添加对选项的控制
-    Input("graph-display-toggle", "value"),
-    Input("graph-store", "data"),
-    State("graph-display-state", "data"),
-    State("style-store", "data"),  # 添加当前style-store状态作为输入
-)
-def toggle_graph_component(toggle_value, graph_data, current_state, current_style):
-    show_graph = "show" in toggle_value
-    is_locked = current_state.get("locked", False)
-
-    # 检查数据规模
-    node_count = 0
-    if graph_data:
-        text_graph = TextGraph(graph_data)
-        node_count = len(text_graph.nodes)
-
-        # 如果节点数超过阈值，强制锁定显示
-        if node_count > NODE_THRESHOLD:
-            is_locked = True
-            show_graph = False
-
-    # 更新状态
-    current_state["show"] = show_graph
-    current_state["locked"] = is_locked
-
-    # 确定切换开关的状态和选项
-    toggle_options = [
-        {
-            "label": f" 显示图形可视化{'（已锁定）' if is_locked else ''}",
-            "value": "show",
-            "disabled": is_locked,
-        }
-    ]
-    toggle_value = [] if not show_graph else ["show"]
-
-    # Reset the data_updated flag if it exists
-    if "data_updated" in current_state:
-        current_state["data_updated"] = False
-
-    # 初始化重置后的样式数据
-    reset_style = {
-        "selected_nodes": [],
-        "bridge_words": [],
-        "highlighted_edges": [],
-        "base_style_applied": True,
-    }
-
-    if show_graph:
-        # 显示图组件时，重置style-store
-        return (
-            [
-                cyto.Cytoscape(
-                    id="cytoscape",
-                    elements=(
-                        TextGraph(graph_data).get_elements() if graph_data else []
-                    ),
-                    layout={"name": "cose", "padding": 50},
-                    style={
-                        "width": "100%",
-                        "height": "700px",
-                        "border": "1px solid #ddd",
-                        "borderRadius": "5px",
-                    },
-                    generateImage={"type": "png", "action": "store"},
-                    stylesheet=get_base_stylesheet(),
-                ),
-                # 清空选中按钮
-                html.Button(
-                    "清空所有选中",
-                    id="clear-selection-btn",
-                    n_clicks=0,
-                    style={
-                        "position": "absolute",
-                        "top": "18px",
-                        "right": "18px",
-                        "zIndex": 10,
-                        "fontSize": "15px",
-                        "padding": "7px 18px",
-                        "backgroundColor": "#ffb300",
-                        "color": "#fff",
-                        "border": "none",
-                        "borderRadius": "4px",
-                        "cursor": "pointer",
-                        "boxShadow": "0 2px 8px #e0e0e0",
-                    },
-                ),
-                # 保存图片按钮 - 添加到图右下角
-                html.Button(
-                    "保存为图片",
-                    id="save-image-btn",
-                    n_clicks=0,
-                    style={
-                        "position": "absolute",
-                        "bottom": "18px",
-                        "right": "18px",
-                        "zIndex": 10,
-                        "fontSize": "15px",
-                        "padding": "7px 18px",
-                        "backgroundColor": "#00A8E8",
-                        "color": "#fff",
-                        "border": "none",
-                        "borderRadius": "4px",
-                        "cursor": "pointer",
-                        "boxShadow": "0 2px 8px #e0e0e0",
-                    },
-                ),
-            ],
-            current_state,
-            reset_style,
-            toggle_value,
-            toggle_options,
-        )
-    else:
-        # 不显示图组件时，保持当前style-store状态不变
-        return (
-            [
-                html.Div(
-                    "图形可视化已隐藏"
-                    + ("（数据量过大，已锁定）" if is_locked else "（节省资源）"),
-                    style={
-                        "display": "flex",
-                        "justifyContent": "center",
-                        "alignItems": "center",
-                        "height": "700px",
-                        "border": "1px dashed #ccc",
-                        "borderRadius": "5px",
-                        "color": "#666",
-                        "fontSize": "16px",
-                        "backgroundColor": "#f9f9f9",
-                    },
-                )
-            ],
-            current_state,
-            current_style,
-            toggle_value,
-            toggle_options,
-        )
 
 
 register_callbacks(app)

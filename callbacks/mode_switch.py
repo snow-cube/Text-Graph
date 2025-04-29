@@ -2,12 +2,13 @@ from dash import Output, Input, State
 import dash
 from graph_process_utils.bridge_utils import process_bridge_words
 from graph_process_utils.shortest_path_utils import process_shortest_path
+from message_templates import bridge_result_message, shortest_path_result_message
 
 
 def register_mode_switch_callback(app):
     @app.callback(
         [
-            Output("bridge-result", "children", allow_duplicate=True),
+            Output("node-info", "children", allow_duplicate=True),
             Output("style-store", "data", allow_duplicate=True),
         ],
         Input("query-mode-switch", "value"),
@@ -30,13 +31,16 @@ def register_mode_switch_callback(app):
         word1, word2 = selected_nodes
         if word1 and word2 and word1 != word2:
             if mode == "shortest":
-                path, msg, updated_style = process_shortest_path(
+                path, msg_text, updated_style = process_shortest_path(
                     word1, word2, graph_text, style_state, is_graph_displayed
                 )
-                return msg, updated_style
+                # 使用模板生成结果
+                return shortest_path_result_message(msg_text), updated_style
             else:
-                bridges, msg, updated_style = process_bridge_words(
+                bridges, msg_text, updated_style = process_bridge_words(
                     word1, word2, graph_text, style_state, is_graph_displayed
                 )
-                return msg, updated_style
+                # 使用模板生成结果
+                return bridge_result_message(msg_text), updated_style
+
         return dash.no_update, dash.no_update

@@ -31,25 +31,21 @@ class TextGraph:
         bridge_to_word2_edges = []
 
         # 直接在查找桥接词的过程中构建边集合
-        for (src, mid) in self.edge_count:
+        for src, mid in self.edge_count:
             if src == word1:  # 从word1出发的边
                 if (mid, word2) in self.edge_count:  # 如果mid能到达word2
                     # 找到桥接词
                     bridge_words.add(mid)
 
                     # 同时添加从word1到mid的边
-                    word1_to_bridge_edges.append({
-                        "source": word1,
-                        "target": mid,
-                        "type": "bridge"
-                    })
+                    word1_to_bridge_edges.append(
+                        {"source": word1, "target": mid, "type": "bridge"}
+                    )
 
                     # 同时添加从mid到word2的边
-                    bridge_to_word2_edges.append({
-                        "source": mid,
-                        "target": word2,
-                        "type": "bridge"
-                    })
+                    bridge_to_word2_edges.append(
+                        {"source": mid, "target": word2, "type": "bridge"}
+                    )
 
         # 返回 (桥接词列表, word1到桥接词的边, 桥接词到word2的边)
         return list(bridge_words), word1_to_bridge_edges, bridge_to_word2_edges
@@ -87,3 +83,42 @@ class TextGraph:
                         heap, (cost + edge_weight, neighbor, path + [neighbor])
                     )
         return [], 0
+
+    @staticmethod
+    def calculate_next_random_walk_step(current_node, edge_count):
+        """
+        Calculate the next step in a random walk based on the current node and edge weights.
+
+        Args:
+            current_node: The current node in the random walk
+            edge_count: Dictionary with (src, tgt) tuples as keys and weights as values
+
+        Returns:
+            A tuple containing (next_node, edge_weight)
+            - next_node: The selected next node (None if there are no outgoing edges)
+            - edge_weight: The weight of the edge to the next node (0 if next_node is None)
+        """
+        import random
+
+        # Get all outgoing edges from the current node
+        out_edges = []
+        for (src, tgt), weight in edge_count.items():
+            if src == current_node and weight > 0:
+                out_edges.append((tgt, weight))
+
+        # If there are no outgoing edges, return None and 0
+        if not out_edges:
+            return None, 0
+
+        # Randomly select the next node (higher weight = higher probability)
+        weights = [w for _, w in out_edges]
+        next_node = random.choices([n for n, _ in out_edges], weights=weights)[0]
+
+        # Get the edge weight
+        edge_weight = next(
+            w
+            for (s, t), w in edge_count.items()
+            if s == current_node and t == next_node
+        )
+
+        return next_node, edge_weight
