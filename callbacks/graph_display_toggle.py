@@ -24,9 +24,7 @@ def register_graph_display_toggle_callback(app):
         # 检查数据规模
         node_count = 0
         if graph_data:
-            text_graph = TextGraph(graph_data)
-            node_count = len(text_graph.nodes)
-
+            node_count = TextGraph(graph_data).node_count
             # 如果节点数超过阈值，强制锁定显示
             if node_count > NODE_THRESHOLD:
                 is_locked = True

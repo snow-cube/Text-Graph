@@ -1,4 +1,4 @@
-from dash import Output, Input, State, html
+from dash import Output, Input, State
 import dash
 from graph_process_utils.bridge_utils import process_bridge_words
 from graph_process_utils.shortest_path_utils import process_shortest_path

@@ -23,8 +23,7 @@ def register_upload_callback(app):
             decoded = base64.b64decode(b64_content).decode("utf-8")
 
             # 检查图的节点数量
-            text_graph = TextGraph(decoded)
-            node_count = len(text_graph.nodes)
+            node_count = TextGraph(decoded).node_count
 
             # 更新状态并标记数据已更新
             display_state["data_updated"] = True

@@ -17,7 +17,7 @@ if len(sys.argv) == 2:
             # 检查初始数据的节点数
             if initial_text:
                 text_graph = TextGraph(initial_text)
-                if len(text_graph.nodes) > NODE_THRESHOLD:
+                if text_graph.node_count > NODE_THRESHOLD:
                     initial_locked = True
     except Exception as e:
         print(f"⚠️ 无法读取文件: {e}")

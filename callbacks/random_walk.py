@@ -1,4 +1,4 @@
-from dash import Output, Input, State, html, dcc
+from dash import Output, Input, State
 import dash
 import json
 import random
