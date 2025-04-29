@@ -9,13 +9,13 @@ def register_graph_display_toggle_callback(app):
     @app.callback(
         Output("graph-container", "children"),
         Output("graph-display-state", "data"),
-        Output("style-store", "data"),  # 添加style-store作为输出
-        Output("graph-display-toggle", "value"),  # 添加对切换开关的控制
-        Output("graph-display-toggle", "options"),  # 添加对选项的控制
+        Output("style-store", "data"),
+        Output("graph-display-toggle", "value"),
+        Output("graph-display-toggle", "options"),
         Input("graph-display-toggle", "value"),
         Input("graph-store", "data"),
         State("graph-display-state", "data"),
-        State("style-store", "data"),  # 添加当前style-store状态作为输入
+        State("style-store", "data"),
     )
     def toggle_graph_component(toggle_value, graph_data, current_state, current_style):
         show_graph = "show" in toggle_value

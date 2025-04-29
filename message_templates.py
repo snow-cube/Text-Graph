@@ -89,7 +89,7 @@ def warning_message(
     ]
 
 
-def node_info_message(word, in_edges, out_edges):
+def node_info_message(word, in_edges, out_edges, pagerank_data=None):
     """返回节点详细信息组件"""
     return [
         html.H4(f"单词: {word}", style=TITLE_STYLE),
@@ -110,6 +110,8 @@ def node_info_message(word, in_edges, out_edges):
                             "paddingLeft": "20px",
                             "marginBottom": "8px",
                             "marginTop": "5px",
+                            "maxHeight": "210px",  # 添加最大高度限制
+                            "overflowY": "auto",   # 添加垂直滚动
                         },
                     )
                     if in_edges
@@ -136,6 +138,8 @@ def node_info_message(word, in_edges, out_edges):
                             "paddingLeft": "20px",
                             "marginBottom": "8px",
                             "marginTop": "5px",
+                            "maxHeight": "210px",  # 添加最大高度限制
+                            "overflowY": "auto",   # 添加垂直滚动
                         },
                     )
                     if out_edges
@@ -170,8 +174,19 @@ def node_info_message(word, in_edges, out_edges):
                             f"{len(in_edges) + len(out_edges)}",
                             style={"color": "#0288d1"},
                         ),
-                    ]
+                    ],
+                    style={"marginBottom": "5px" if pagerank_data else "0"},
                 ),
+                # 添加PageRank信息（如果有）
+                html.Div(
+                    [
+                        html.Span(f"PageRank值: ", style={"fontWeight": "bold"}),
+                        html.Span(
+                            pagerank_data.get(word, "未计算"),
+                            style={"color": "#e91e63", "fontWeight": "bold"},
+                        ),
+                    ],
+                ) if pagerank_data else None,
             ],
             style=CARD_STYLE,
         ),

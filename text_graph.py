@@ -96,6 +96,36 @@ class TextGraph:
                     heapq.heappush(heap, (new_cost, neighbor, path + [neighbor]))
         return [], 0
 
+    def get_in_edges(self, node):
+        """
+        返回指向指定节点的所有入边
+
+        Args:
+            node: 目标节点
+
+        Returns:
+            dict: 键为源节点，值为边的权重
+        """
+        in_edge_dict = {}
+        for source, weight in self.in_edges.get(node, []):
+            in_edge_dict[source] = weight
+        return in_edge_dict
+
+    def get_out_edges(self, node):
+        """
+        返回从指定节点出发的所有出边
+
+        Args:
+            node: 源节点
+
+        Returns:
+            dict: 键为目标节点，值为边的权重
+        """
+        out_edge_dict = {}
+        for target, weight in self.out_edges.get(node, []):
+            out_edge_dict[target] = weight
+        return out_edge_dict
+
     @staticmethod
     def calculate_next_random_walk_step(current_node, edge_count):
         """
@@ -134,3 +164,62 @@ class TextGraph:
         )
 
         return next_node, edge_weight
+
+    def calculate_pagerank(
+        self, damping_factor=0.85, max_iterations=100, tolerance=1e-6
+    ):
+        """
+        Calculate PageRank for all nodes in the graph.
+
+        Args:
+            damping_factor: The damping factor (default: 0.85)
+            max_iterations: Maximum number of iterations (default: 100)
+            tolerance: Convergence tolerance (default: 1e-6)
+
+        Returns:
+            A dictionary mapping node labels to their PageRank values
+        """
+        # Initialize PageRank values
+        N = self.node_count
+        if N == 0:
+            return {}
+
+        pagerank = {node: 1.0 / N for node in self.nodes}
+
+        # Identify nodes with zero out-degree
+        zero_outdegree_nodes = {node for node in self.nodes if not self.out_edges[node]}
+
+        for _ in range(max_iterations):
+            # Store previous PageRank values to check for convergence
+            prev_pagerank = pagerank.copy()
+
+            # Collect the "leaked" PageRank from nodes with zero out-degree
+            zero_outdegree_sum = (
+                sum(prev_pagerank[node] for node in zero_outdegree_nodes)
+                * damping_factor
+                / N
+            )
+
+            # Update PageRank for each node
+            for node in self.nodes:
+                # Initialize with the random teleport probability
+                pagerank[node] = (1 - damping_factor) / N
+
+                # Add the contribution from nodes pointing to this node
+                for source, _ in self.in_edges[node]:
+                    # Divide the source's PageRank by its out-degree
+                    out_degree = len(self.out_edges[source])
+                    if out_degree > 0:  # Should always be true for nodes in in_edges
+                        pagerank[node] += (
+                            damping_factor * prev_pagerank[source] / out_degree
+                        )
+
+                # Add the contribution from zero out-degree nodes
+                pagerank[node] += zero_outdegree_sum
+
+            # Check for convergence
+            diff = sum(abs(pagerank[node] - prev_pagerank[node]) for node in self.nodes)
+            if diff < tolerance:
+                break
+
+        return pagerank
