@@ -1,4 +1,4 @@
-from dash import Output, Input
+from dash import Output, Input, State
 from style_utils import (
     get_base_stylesheet,
     get_selected_node_style,
@@ -15,9 +15,14 @@ def register_style_callback(app):
     @app.callback(
         Output("cytoscape", "stylesheet"),
         Input("style-store", "data"),
+        State("graph-display-state", "data"),
         prevent_initial_call=True,
     )
-    def update_stylesheet(style_state):
+    def update_stylesheet(style_state, display_state):
+        # 只在图显示时更新样式
+        if not display_state or not display_state.get("show", False):
+            return get_base_stylesheet()
+
         stylesheet = get_base_stylesheet()
         selected_nodes = style_state.get("selected_nodes", [])
         if len(selected_nodes) >= 1:

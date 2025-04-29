@@ -27,11 +27,32 @@ class TextGraph:
         word1 = word1.lower()
         word2 = word2.lower()
         bridge_words = set()
-        for src, mid in self.edge_count:
-            if src == word1:
-                if (mid, word2) in self.edge_count:
+        word1_to_bridge_edges = []
+        bridge_to_word2_edges = []
+
+        # 直接在查找桥接词的过程中构建边集合
+        for (src, mid) in self.edge_count:
+            if src == word1:  # 从word1出发的边
+                if (mid, word2) in self.edge_count:  # 如果mid能到达word2
+                    # 找到桥接词
                     bridge_words.add(mid)
-        return list(bridge_words)
+
+                    # 同时添加从word1到mid的边
+                    word1_to_bridge_edges.append({
+                        "source": word1,
+                        "target": mid,
+                        "type": "bridge"
+                    })
+
+                    # 同时添加从mid到word2的边
+                    bridge_to_word2_edges.append({
+                        "source": mid,
+                        "target": word2,
+                        "type": "bridge"
+                    })
+
+        # 返回 (桥接词列表, word1到桥接词的边, 桥接词到word2的边)
+        return list(bridge_words), word1_to_bridge_edges, bridge_to_word2_edges
 
     def get_shortest_path(self, word1, word2):
         import heapq

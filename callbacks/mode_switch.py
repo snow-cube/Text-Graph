@@ -14,25 +14,29 @@ def register_mode_switch_callback(app):
         [
             State("graph-store", "data"),
             State("style-store", "data"),
-            State("cytoscape", "elements"),
+            State("graph-display-state", "data"),  # Add display state
         ],
         prevent_initial_call=True,
     )
-    def update_on_mode_switch(mode, graph_text, style_state, elements):
+    def update_on_mode_switch(mode, graph_text, style_state, display_state):
         # 只根据已选节点进行处理
         selected_nodes = style_state.get("selected_nodes") if style_state else None
         if not selected_nodes or len(selected_nodes) != 2:
             return dash.no_update, dash.no_update
+
+        # Check if graph is displayed
+        is_graph_displayed = display_state.get('show', False)
+
         word1, word2 = selected_nodes
         if word1 and word2 and word1 != word2:
             if mode == "shortest":
                 path, msg, updated_style = process_shortest_path(
-                    word1, word2, graph_text, elements, style_state
+                    word1, word2, graph_text, style_state, is_graph_displayed
                 )
                 return msg, updated_style
             else:
                 bridges, msg, updated_style = process_bridge_words(
-                    word1, word2, graph_text, elements, style_state
+                    word1, word2, graph_text, style_state, is_graph_displayed
                 )
                 return msg, updated_style
         return dash.no_update, dash.no_update

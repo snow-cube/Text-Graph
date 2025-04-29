@@ -18,15 +18,11 @@ def register_node_click_callback(app):
             State("style-store", "data"),
             State("cytoscape", "elements"),
             State("graph-store", "data"),
-            State("bridge-word1", "value"),
-            State("bridge-word2", "value"),
             State("query-mode-switch", "value"),
         ],
         prevent_initial_call=True,
     )
-    def handle_node_click(
-        tap_node_data, style_state, elements, graph_text, curr_word1, curr_word2, mode
-    ):
+    def handle_node_click(tap_node_data, style_state, elements, graph_text, mode):
         if not tap_node_data:
             return (
                 dash.no_update,
@@ -46,12 +42,12 @@ def register_node_click_callback(app):
             w1, w2 = selected_nodes
             if mode == "shortest":
                 path, msg, updated_style = process_shortest_path(
-                    w1, w2, graph_text, elements, style_state
+                    w1, w2, graph_text, style_state
                 )
                 return dash.no_update, updated_style, w1, w2, msg
             else:
                 bridges, msg, updated_style = process_bridge_words(
-                    w1, w2, graph_text, elements, style_state
+                    w1, w2, graph_text, style_state
                 )
                 return dash.no_update, updated_style, w1, w2, msg
         style_state["bridge_words"] = []
