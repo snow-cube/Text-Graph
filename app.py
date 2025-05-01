@@ -3,6 +3,12 @@ import dash
 from dash import html, dcc
 from text_graph import TextGraph
 from styles.basic_style import get_reset_style_state
+from styles.button_styles import (
+    RANDOM_WALK_START_BUTTON_STYLE,
+    get_query_button_style,
+    get_node_query_button_style,
+    get_save_walk_button_style
+)
 from register_callbacks import register_callbacks
 from callbacks.upload import NODE_THRESHOLD
 from message_templates import welcome_message
@@ -40,6 +46,15 @@ app.layout = html.Div(
         dcc.Store(id="random-walk-store", data={}),
         # 新增：PageRank 结果存储
         dcc.Store(id="pagerank-store", data={}),
+        # 新增: UI状态存储 - 用于分离UI状态与核心逻辑
+        dcc.Store(
+            id="ui-state-store",
+            data={
+                "walk_active": False,  # 是否正在随机游走
+                "save_enabled": False,  # 是否可以保存游走结果
+                "query_enabled": True,  # 是否启用查询功能
+            }
+        ),
         # 新增：用于控制随机游走步进的间隔计时器
         dcc.Interval(
             id="random-walk-interval",
@@ -56,16 +71,9 @@ app.layout = html.Div(
                             [
                                 dcc.Checklist(
                                     id="graph-display-toggle",
-                                    options=[
-                                        {"label": " 显示图形可视化", "value": "show"}
-                                    ],
-                                    value=(
-                                        [] if initial_locked else ["show"]
-                                    ),  # 根据初始锁定状态设置默认值
-                                    style={
-                                        "fontWeight": "bold",
-                                        "marginBottom": "10px",
-                                    },
+                                    options=[{"label": " 显示图形可视化", "value": "show"}],
+                                    value=([] if initial_locked else ["show"]),  # 根据初始锁定状态设置默认值
+                                    style={"fontWeight": "bold", "marginBottom": "10px"},
                                 ),
                             ],
                         ),
@@ -176,10 +184,7 @@ app.layout = html.Div(
                                         "marginRight": "18px",
                                         "fontSize": "16px",
                                     },
-                                    style={
-                                        "marginBottom": "10px",
-                                        "textAlign": "center",
-                                    },
+                                    style={"marginBottom": "10px", "textAlign": "center"},
                                 ),
                             ],
                             style={"textAlign": "center", "marginBottom": "8px"},
@@ -205,15 +210,7 @@ app.layout = html.Div(
                                     n_clicks=0,
                                     children="查询",
                                     disabled=False,  # 添加初始disabled属性
-                                    style={
-                                        "fontSize": "15px",
-                                        "padding": "6px 16px",
-                                        "backgroundColor": "#43a047",
-                                        "color": "#fff",
-                                        "border": "none",
-                                        "borderRadius": "4px",
-                                        "cursor": "pointer",
-                                    },
+                                    style=get_query_button_style(enabled=True),
                                 ),
                             ],
                             style={
@@ -250,15 +247,7 @@ app.layout = html.Div(
                                     n_clicks=0,
                                     children="查询",
                                     disabled=False,
-                                    style={
-                                        "fontSize": "15px",
-                                        "padding": "6px 16px",
-                                        "backgroundColor": "#2196F3",
-                                        "color": "#fff",
-                                        "border": "none",
-                                        "borderRadius": "4px",
-                                        "cursor": "pointer",
-                                    },
+                                    style=get_node_query_button_style(enabled=True),
                                 ),
                             ],
                             style={
@@ -292,48 +281,19 @@ app.layout = html.Div(
                                             "开始随机游走",
                                             id="random-walk-btn",
                                             n_clicks=0,
-                                            style={
-                                                "fontSize": "15px",
-                                                "padding": "7px 10px",
-                                                "backgroundColor": "#9c27b0",
-                                                "color": "#fff",
-                                                "border": "none",
-                                                "borderRadius": "4px",
-                                                "cursor": "pointer",
-                                                "flex": "1",
-                                            },
+                                            style=RANDOM_WALK_START_BUTTON_STYLE,
                                         ),
                                         html.Button(
                                             "停止随机游走",
                                             id="stop-walk-btn",
                                             n_clicks=0,
-                                            style={
-                                                "display": "none",  # 初始隐藏
-                                                "fontSize": "15px",
-                                                "padding": "7px 10px",
-                                                "backgroundColor": "#e53935",
-                                                "color": "#fff",
-                                                "border": "none",
-                                                "borderRadius": "4px",
-                                                "cursor": "pointer",
-                                                "flex": "1",
-                                            },
+                                            style={"display": "none"},  # 初始隐藏
                                         ),
                                         html.Button(
                                             "保存游走单词序列",
                                             id="save-walk-btn",
                                             n_clicks=0,
-                                            style={
-                                                "fontSize": "15px",
-                                                "padding": "7px 10px",
-                                                "backgroundColor": "#aaaaaa",  # 初始为灰色（禁用状态）
-                                                "color": "#fff",
-                                                "border": "none",
-                                                "borderRadius": "4px",
-                                                "cursor": "not-allowed",  # 初始禁用
-                                                "flex": "1",
-                                                "marginLeft": "10px",
-                                            },
+                                            style=get_save_walk_button_style(enabled=False),
                                             disabled=True,  # 初始禁用
                                         ),
                                     ],
@@ -356,19 +316,57 @@ app.layout = html.Div(
                                 dcc.Checklist(
                                     id="pagerank-toggle",
                                     options=[
-                                        {
-                                            "label": " 开启PageRank计算",
-                                            "value": "enabled",
-                                        }
+                                        {"label": " 开启PageRank计算", "value": "enabled"},
                                     ],
                                     value=[],
-                                    style={
-                                        "marginBottom": "10px",
-                                        "fontWeight": "bold",
-                                    },
+                                    style={"marginBottom": "10px", "fontWeight": "bold"},
                                 ),
                             ],
                             style={"marginBottom": "10px"},
+                        ),
+                        # 添加文本桥接生成区域
+                        html.H3(
+                            "文本桥接生成",
+                            style={
+                                "textAlign": "center",
+                                "marginTop": "18px",
+                                "marginBottom": "10px",
+                                "color": "#0077B6",
+                                "fontWeight": "bold",
+                                "letterSpacing": "2px",
+                            },
+                        ),
+                        html.Div(
+                            [
+                                dcc.Textarea(
+                                    id="bridge-text-input",
+                                    placeholder="输入文本，将自动插入桥接词...",
+                                    style={
+                                        "width": "100%",
+                                        "height": "80px",
+                                        "marginBottom": "8px",
+                                        "padding": "8px",
+                                        "borderRadius": "4px",
+                                        "border": "1px solid #ccc",
+                                    },
+                                ),
+                                html.Button(
+                                    id="generate-bridge-text-btn",
+                                    n_clicks=0,
+                                    children="生成带桥接词的文本",
+                                    style={
+                                        "fontSize": "15px",
+                                        "padding": "7px 10px",
+                                        "backgroundColor": "#ff9800",
+                                        "color": "#fff",
+                                        "border": "none",
+                                        "borderRadius": "4px",
+                                        "cursor": "pointer",
+                                        "width": "100%",
+                                    },
+                                ),
+                            ],
+                            style={"marginBottom": "20px"},
                         ),
                         html.Div(
                             id="node-info",
@@ -400,7 +398,6 @@ app.layout = html.Div(
     ],
     style={"fontFamily": "Arial, sans-serif", "padding": "10px"},
 )
-
 
 register_callbacks(app)
 

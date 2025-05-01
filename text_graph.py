@@ -47,23 +47,23 @@ class TextGraph:
 
         # 优化桥接词查找算法，使用邻接表结构，避免遍历所有边
         if word1 in self.out_edges and word2 in self.in_edges:
-            # 获取word1的所有后继节点
+            # 获取 word1 的所有后继节点
             for mid, w1_to_mid_weight in self.out_edges[word1]:
-                # 检查mid是否能到达word2（即mid是否是word2的前驱）
+                # 检查 mid 是否能到达 word2（即 mid 是否是 word2 的前驱）
                 for src, _ in self.in_edges[word2]:
                     if src == mid:  # 找到桥接词
                         bridge_words.add(mid)
-                        # 添加从word1到mid的边
+                        # 添加从 word1 到 mid 的边
                         word1_to_bridge_edges.append(
                             {"source": word1, "target": mid, "type": "bridge"}
                         )
-                        # 添加从mid到word2的边
+                        # 添加从 mid 到 word2 的边
                         bridge_to_word2_edges.append(
                             {"source": mid, "target": word2, "type": "bridge"}
                         )
                         break  # 已找到连接，无需继续检查
 
-        # 返回 (桥接词列表, word1到桥接词的边, 桥接词到word2的边)
+        # 返回 (桥接词列表, word1 到桥接词的边, 桥接词到 word2 的边)
         return list(bridge_words), word1_to_bridge_edges, bridge_to_word2_edges
 
     def get_shortest_path(self, word1, word2):
@@ -223,3 +223,42 @@ class TextGraph:
                 break
 
         return pagerank
+
+    def generate_text_with_bridges(self, new_text):
+        """
+        Generate new text by inserting bridge words between adjacent words.
+
+        Args:
+            new_text: The input text to process
+
+        Returns:
+            A string with bridge words inserted between adjacent words
+        """
+        import random
+
+        # Clean and split the input text
+        clean_text = re.sub(r"[^\w\s]", "", new_text).lower()
+        words = clean_text.split()
+
+        if len(words) <= 1:
+            return new_text  # No adjacent words to process
+
+        result_words = [words[0]]  # Start with the first word
+
+        # Process each pair of adjacent words
+        for i in range(len(words) - 1):
+            word1, word2 = words[i], words[i + 1]
+
+            # Find bridge words between this pair
+            bridges, _, _ = self.get_bridge_words(word1, word2)
+
+            # If bridge words exist, randomly select one and add it
+            if bridges:
+                bridge = random.choice(bridges)
+                result_words.append(bridge)
+
+            # Add the second word of the pair
+            result_words.append(word2)
+
+        # Join the result words into a single string
+        return " ".join(result_words)

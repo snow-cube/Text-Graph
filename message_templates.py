@@ -328,3 +328,37 @@ def random_walk_result_message(walked_nodes, walked_edges, stop_reason):
             style=CARD_STYLE,
         ),
     ]
+
+
+def bridge_text_result_message(original_text, result_text, is_error=False):
+    """返回桥接词文本生成结果组件"""
+    result_style = WARNING_TEXT_STYLE if is_error else {
+        "fontWeight": "normal",
+        "color": "#ff6d00",
+        "padding": "8px",
+        "backgroundColor": "#fff3e0",
+        "borderRadius": "4px",
+        "whiteSpace": "pre-wrap",
+        "wordBreak": "break-word"
+    }
+
+    return [
+        html.H4("桥接词文本生成结果", style=TITLE_STYLE),
+        html.Hr(style=DIVIDER_STYLE),
+        html.Div(
+            [
+                html.H5("原始文本:", style=SUBTITLE_STYLE),
+                html.P(original_text, style={
+                    "padding": "8px",
+                    "backgroundColor": "#f1f1f1",
+                    "borderRadius": "4px",
+                    "whiteSpace": "pre-wrap",
+                    "wordBreak": "break-word"
+                }),
+                html.H5("处理后的文本:", style=SUBTITLE_STYLE),
+                html.P(result_text, style=result_style),
+            ],
+            style=CARD_STYLE,
+        ),
+        html.P("查看上方结果或继续输入新的文本进行处理", style=HELP_TEXT_STYLE),
+    ]
