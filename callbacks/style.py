@@ -1,7 +1,7 @@
 from dash import Output, Input, State
-from styles.basic_style import get_base_stylesheet
+from styles.basic_styles import get_base_stylesheet
 
-from styles.selected_node_style import (
+from styles.selected_node_styles import (
     get_selected_node_style,
     get_in_edge_style,
     get_out_edge_style,
@@ -9,12 +9,12 @@ from styles.selected_node_style import (
     get_second_selected_node_style,
 )
 
-from styles.bridge_word_style import get_bridge_word_style, get_bridge_edge_style
-from styles.shortest_path_style import (
+from styles.bridge_word_styles import get_bridge_word_style, get_bridge_edge_style
+from styles.shortest_path_styles import (
     get_shortest_path_node_style,
     get_shortest_path_edge_style,
 )
-from styles.random_walk_style import (
+from styles.random_walk_styles import (
     get_random_walk_node_style,
     get_random_walk_edge_style,
     get_random_walk_start_node_style,

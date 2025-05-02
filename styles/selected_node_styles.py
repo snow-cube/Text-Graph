@@ -2,7 +2,7 @@ def get_selected_node_style(word):
     return {
         "selector": f"node[id = '{word}']",
         "style": {
-            "background-color": "#cfd8dc",  # 浅蓝灰，和谐不显眼
+            "background-color": "#cfd8dc",
             "border-color": "#90a4ae",
             "border-width": 2,
             "text-outline-color": "#90a4ae",

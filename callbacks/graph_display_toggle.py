@@ -1,7 +1,7 @@
 from dash import html, Input, Output, State
 import dash_cytoscape as cyto
 from text_graph import TextGraph
-from styles.basic_style import get_base_stylesheet, get_reset_style_state
+from styles.basic_styles import get_base_stylesheet, get_reset_style_state
 from callbacks.upload import NODE_THRESHOLD
 
 
@@ -9,13 +9,13 @@ def register_graph_display_toggle_callback(app):
     @app.callback(
         Output("graph-container", "children"),
         Output("graph-display-state", "data"),
-        Output("style-store", "data"),  # 添加style-store作为输出
-        Output("graph-display-toggle", "value"),  # 添加对切换开关的控制
-        Output("graph-display-toggle", "options"),  # 添加对选项的控制
+        Output("style-store", "data"),
+        Output("graph-display-toggle", "value"),
+        Output("graph-display-toggle", "options"),
         Input("graph-display-toggle", "value"),
         Input("graph-store", "data"),
         State("graph-display-state", "data"),
-        State("style-store", "data"),  # 添加当前style-store状态作为输入
+        State("style-store", "data"),
     )
     def toggle_graph_component(toggle_value, graph_data, current_state, current_style):
         show_graph = "show" in toggle_value
@@ -49,16 +49,10 @@ def register_graph_display_toggle_callback(app):
             current_state["data_updated"] = False
 
         # 初始化重置后的样式数据
-        # reset_style = {
-        #     "selected_nodes": [],
-        #     "bridge_words": [],
-        #     "highlighted_edges": [],
-        #     "base_style_applied": True,
-        # }
         reset_style = get_reset_style_state()
 
         if show_graph:
-            # 显示图组件时，重置style-store
+            # 显示图组件时，重置 style-store
             return (
                 [
                     cyto.Cytoscape(
@@ -69,9 +63,11 @@ def register_graph_display_toggle_callback(app):
                         layout={"name": "cose", "padding": 50},
                         style={
                             "width": "100%",
-                            "height": "700px",
+                            # "height": "700px",
+                            "height": "calc(100vh - 125px)",
+                            "minHeight": "320px",
                             "border": "1px solid #ddd",
-                            "borderRadius": "5px",
+                            "borderRadius": "8px",
                         },
                         generateImage={"type": "png", "action": "store"},
                         stylesheet=get_base_stylesheet(),
@@ -123,19 +119,21 @@ def register_graph_display_toggle_callback(app):
                 toggle_options,
             )
         else:
-            # 不显示图组件时，保持当前style-store状态不变
+            # 不显示图组件时，保持当前 style-store 状态不变
             return (
                 [
                     html.Div(
                         "图形可视化已隐藏"
-                        + ("（数据量过大，已锁定）" if is_locked else "（节省资源）"),
+                        + (" (数据量过大，已锁定)" if is_locked else ""),
                         style={
                             "display": "flex",
                             "justifyContent": "center",
                             "alignItems": "center",
-                            "height": "700px",
+                            # "height": "700px",
+                            "height": "calc(100vh - 125px)",
+                            "minHeight": "320px",
                             "border": "1px dashed #ccc",
-                            "borderRadius": "5px",
+                            "borderRadius": "8px",
                             "color": "#666",
                             "fontSize": "16px",
                             "backgroundColor": "#f9f9f9",

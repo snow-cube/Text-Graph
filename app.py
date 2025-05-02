@@ -1,22 +1,38 @@
 import sys
+import os
 import dash
 from dash import html, dcc
+from layouts.module_container import container_line, module_container
 from text_graph import TextGraph
-from styles.basic_style import get_reset_style_state
+from styles.basic_styles import get_reset_style_state
+from styles.button_input_styles import (
+    RANDOM_WALK_START_BUTTON_STYLE,
+    get_query_button_style,
+    get_node_query_button_style,
+    get_save_walk_button_style,
+    get_bridge_text_button_style,
+    get_input_style,
+    get_textarea_style,
+)
 from register_callbacks import register_callbacks
 from callbacks.upload import NODE_THRESHOLD
-from message_templates import welcome_message
+from layouts.message_templates import welcome_message
+from layouts.module_container import MODULE_CONTAINER_STYLE
 
 # ==== 启动时检查是否提供文件路径 ====
 initial_text = ""
 initial_locked = False
+initial_filename = ""  # 添加保存初始文件名
 if len(sys.argv) == 2:
     try:
-        with open(sys.argv[1], "r", encoding="utf-8") as f:
+        filepath = sys.argv[1]
+        with open(filepath, "r", encoding="utf-8") as f:
             initial_text = f.read()
+            initial_filename = os.path.basename(filepath)
             # 检查初始数据的节点数
             if initial_text:
                 text_graph = TextGraph(initial_text)
+                initial_node_count = text_graph.node_count  # 保存节点数量
                 if text_graph.node_count > NODE_THRESHOLD:
                     initial_locked = True
     except Exception as e:
@@ -27,27 +43,52 @@ app.title = "词图可视化"
 
 app.layout = html.Div(
     [
-        html.H2(
-            "词图可视化工具（有向图）",
-            style={"textAlign": "center", "margin": "20px 0"},
+        # 添加浮动通知组件
+        html.Div(
+            id="toast-notification",
+            children=[],
+            style={
+                "position": "fixed",
+                "top": "20px",
+                "right": "20px",
+                "zIndex": "1000",
+                "minWidth": "250px",
+                "maxWidth": "400px",
+                "transform": "translateX(420px)",  # 初始状态在屏幕外
+                "transition": "transform 0.5s ease-in-out, opacity 0.5s ease-in-out",
+                "opacity": "0",
+                "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
+                "borderRadius": "4px",
+            },
         ),
-        # 新增：将 style-store 移到布局顶层，确保始终存在
+        # 添加控制通知显示时间的计时器
+        dcc.Interval(
+            id="toast-interval",
+            interval=6000,  # 6 秒后触发
+            n_intervals=0,
+            max_intervals=1,
+            disabled=True,
+        ),
+        # 存储通知状态
+        dcc.Store(id="toast-state", data={"visible": False}),
+        # 移除原有的标题栏，其他状态存储保持不变
         dcc.Store(
             id="style-store",
-            # data={
-            #     "selected_nodes": [],
-            #     "bridge_words": [],
-            #     "highlighted_edges": [],
-            #     "base_style_applied": True,
-            # },
             data=get_reset_style_state(),
         ),
-        # 新增：随机游走状态存储
         dcc.Store(id="random-walk-store", data={}),
-        # 新增：用于控制随机游走步进的间隔计时器
+        dcc.Store(id="pagerank-store", data={}),
+        dcc.Store(
+            id="ui-state-store",
+            data={
+                "walk_active": False,  # 是否正在随机游走
+                "save_enabled": False,  # 是否可以保存游走结果
+                "query_enabled": True,  # 是否启用查询功能
+            },
+        ),
         dcc.Interval(
             id="random-walk-interval",
-            interval=500,  # 每500毫秒更新一次，可以根据需要调整
+            interval=300,  # 每 300 毫秒更新一次，可以根据需要调整
             n_intervals=0,
             disabled=True,
         ),
@@ -55,40 +96,100 @@ app.layout = html.Div(
             [
                 html.Div(
                     [
-                        # 新增：图显示控制开关
                         html.Div(
                             [
-                                dcc.Checklist(
-                                    id="graph-display-toggle",
-                                    options=[
-                                        {"label": " 显示图形可视化", "value": "show"}
-                                    ],
-                                    value=(
-                                        [] if initial_locked else ["show"]
-                                    ),  # 根据初始锁定状态设置默认值
+                                # 左侧：图显示控制开关
+                                html.Div(
+                                    dcc.Checklist(
+                                        id="graph-display-toggle",
+                                        options=[
+                                            {
+                                                "label": " 显示图形可视化",
+                                                "value": "show",
+                                            }
+                                        ],
+                                        value=(
+                                            [] if initial_locked else ["show"]
+                                        ),  # 根据初始锁定状态设置默认值
+                                        style={
+                                            "fontWeight": "bold",
+                                        },
+                                    ),
                                     style={
-                                        "fontWeight": "bold",
-                                        "marginBottom": "10px",
+                                        "flex": "0 0 auto",
+                                        "paddingRight": "15px",
+                                        "marginLeft": "18px",
                                     },
                                 ),
+                                # 中间：文件信息
+                                html.Div(
+                                    id="header-file-info",
+                                    children=initial_filename
+                                    and f"当前文件: {initial_filename} ({initial_node_count} 个节点)"
+                                    or "",
+                                    style={
+                                        "color": "#2E7D32",
+                                        "fontWeight": "500",
+                                        "fontSize": "14px",
+                                        "whiteSpace": "nowrap",
+                                        "overflow": "hidden",
+                                        "textOverflow": "ellipsis",
+                                        "flex": "1",
+                                        "textAlign": "center",
+                                    },
+                                ),
+                                # 右侧：上传按钮
+                                dcc.Upload(
+                                    id="upload-data",
+                                    children=html.Button(
+                                        "上传文本文件",
+                                        style={
+                                            "fontSize": "14px",
+                                            "padding": "6px 14px",
+                                            "marginRight": "18px",
+                                            "backgroundColor": "#00A8E8",
+                                            "color": "#fff",
+                                            "border": "none",
+                                            "borderRadius": "4px",
+                                            "cursor": "pointer",
+                                            "whiteSpace": "nowrap",
+                                        },
+                                    ),
+                                    accept=".txt",
+                                    multiple=False,
+                                    style={"flex": "0 0 auto"},
+                                ),
                             ],
+                            style={
+                                "display": "flex",
+                                "alignItems": "center",
+                                "marginBottom": "15px",
+                                "backgroundColor": "#f9f9f9",
+                                "padding": "10px 0",
+                                "border": "1px solid #ddd",
+                                "borderRadius": "8px",
+                                "boxShadow": "0 1px 3px rgba(0,0,0,0.08)",
+                                "width": "100%",
+                            },
                         ),
-                        # 新增：存储图显示状态
+                        # 存储图显示状态
                         dcc.Store(
                             id="graph-display-state",
                             data={"show": not initial_locked, "locked": initial_locked},
                         ),
-                        # 修改：空的图组件容器，内容通过回调动态控制
+                        # 图组件容器
                         html.Div(
                             id="graph-container",
                             style={
                                 "position": "relative",
                                 "width": "100%",
-                                "height": "700px",
+                                # "height": "700px",
+                                "height": "calc(100vh - 125px)",
+                                "minHeight": "320px",
                                 "marginBottom": "10px",
                             },
                         ),
-                        # 新增：用于存储图对象的序列化数据
+                        # 用于存储图对象的序列化数据
                         dcc.Store(
                             id="graph-store",
                             data=initial_text if initial_text else "",
@@ -102,216 +203,187 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [
-                        # 优化后的按钮区域
-                        html.Div(
-                            [
-                                dcc.Upload(
-                                    id="upload-data",
-                                    children=html.Button(
-                                        "上传文本文件",
-                                        style={
-                                            "fontSize": "16px",
-                                            "padding": "8px 20px",
-                                            "marginRight": "12px",
-                                            "backgroundColor": "#0077B6",
-                                            "color": "#fff",
-                                            "border": "none",
-                                            "borderRadius": "4px",
-                                            "cursor": "pointer",
-                                        },
-                                    ),
-                                    accept=".txt",
-                                    multiple=False,
-                                ),
-                                # 移除保存为图片按钮 - 将在图内部显示
-                                html.Div(
-                                    id="file-info",
-                                    style={
-                                        "marginTop": "16px",
-                                        "fontSize": "15px",
-                                        "textAlign": "center",
-                                        "padding": "6px 0",
-                                        "borderRadius": "4px",
-                                        "backgroundColor": "#eafaf1",
-                                        "color": "#218838",
-                                        "border": "1px solid #b7e4c7",
-                                        "minHeight": "28px",
-                                        "transition": "all 0.3s",
-                                        "boxShadow": "0 1px 2px #e0e0e0",
-                                    },
-                                ),
+                        module_container(
+                            title="桥接词/最短路查询",
+                            content_list=[
+                                container_line(
+                                    [
+                                        dcc.Input(
+                                            id="bridge-word1",
+                                            type="text",
+                                            placeholder="单词 1",
+                                            style=get_input_style(width="40%"),
+                                            disabled=False,
+                                        ),
+                                        dcc.Input(
+                                            id="bridge-word2",
+                                            type="text",
+                                            placeholder="单词 2",
+                                            style=get_input_style(width="40%"),
+                                            disabled=False,
+                                        ),
+                                        html.Button(
+                                            id="bridge-shortest-query-btn",
+                                            n_clicks=0,
+                                            children="查询",
+                                            disabled=False,
+                                            style=get_query_button_style(enabled=True),
+                                        ),
+                                    ]
+                                )
                             ],
-                            style={
-                                "display": "flex",
-                                "justifyContent": "center",
-                                "alignItems": "center",
-                                "gap": "10px",
-                                "marginBottom": "28px",
-                                "marginTop": "10px",
-                                "padding": "8px 0",
-                                "backgroundColor": "#f1f8ff",
-                                "borderRadius": "6px",
-                                "boxShadow": "0 1px 4px #e0e0e0",
-                            },
-                        ),
-                        html.H3(
-                            "桥接词/最短路查询",
-                            style={
-                                "textAlign": "center",
-                                "marginTop": "18px",
-                                "marginBottom": "10px",
-                                "color": "#0077B6",
-                                "fontWeight": "bold",
-                                "letterSpacing": "2px",
-                            },
-                        ),
-                        # 新增：模式切换控件
-                        html.Div(
-                            [
-                                dcc.RadioItems(
-                                    id="query-mode-switch",
-                                    options=[
-                                        {"label": "桥接词", "value": "bridge"},
-                                        {"label": "最短路", "value": "shortest"},
-                                    ],
-                                    value="bridge",
-                                    labelStyle={
-                                        "display": "inline-block",
-                                        "marginRight": "18px",
-                                        "fontSize": "16px",
+                            right_component=dcc.RadioItems(
+                                id="query-mode-switch",
+                                options=[
+                                    {
+                                        "label": "桥接词",
+                                        "value": "bridge",
                                     },
-                                    style={
-                                        "marginBottom": "10px",
-                                        "textAlign": "center",
+                                    {
+                                        "label": "最短路",
+                                        "value": "shortest",
                                     },
-                                ),
+                                ],
+                                value="bridge",
+                                labelStyle={
+                                    "display": "inline-block",
+                                    "marginLeft": "10px",
+                                    "fontWeight": "bold",
+                                    "fontSize": "14px",
+                                },
+                                style={
+                                    "display": "inline-block",
+                                },
+                            ),
+                        ),
+                        module_container(
+                            title="节点信息查询",
+                            content_list=[
+                                container_line(
+                                    [
+                                        dcc.Input(
+                                            id="node-query-input",
+                                            type="text",
+                                            placeholder="输入节点名称",
+                                            style=get_input_style(width="100%"),
+                                            disabled=False,
+                                        ),
+                                        html.Button(
+                                            id="node-query-btn",
+                                            n_clicks=0,
+                                            children="查询",
+                                            disabled=False,
+                                            style=get_node_query_button_style(
+                                                enabled=True
+                                            ),
+                                        ),
+                                    ]
+                                )
                             ],
-                            style={"textAlign": "center", "marginBottom": "8px"},
-                        ),
-                        html.Div(
-                            [
-                                dcc.Input(
-                                    id="bridge-word1",
-                                    type="text",
-                                    placeholder="单词1",
-                                    style={"width": "40%", "marginRight": "8px"},
-                                    disabled=False,  # 添加初始disabled属性
-                                ),
-                                dcc.Input(
-                                    id="bridge-word2",
-                                    type="text",
-                                    placeholder="单词2",
-                                    style={"width": "40%", "marginRight": "8px"},
-                                    disabled=False,  # 添加初始disabled属性
-                                ),
-                                html.Button(
-                                    id="bridge-shortest-query-btn",
-                                    n_clicks=0,
-                                    children="查询",
-                                    disabled=False,  # 添加初始disabled属性
-                                    style={
-                                        "fontSize": "15px",
-                                        "padding": "6px 16px",
-                                        "backgroundColor": "#43a047",
-                                        "color": "#fff",
-                                        "border": "none",
-                                        "borderRadius": "4px",
-                                        "cursor": "pointer",
+                            right_component=dcc.Checklist(
+                                id="pagerank-toggle",
+                                options=[
+                                    {
+                                        "label": "开启 PageRank 计算",
+                                        "value": "enabled",
                                     },
+                                ],
+                                value=[],
+                                style={
+                                    "fontWeight": "bold",
+                                    "fontSize": "14px",
+                                    "display": "inline-block",
+                                },
+                            ),
+                        ),
+                        module_container(
+                            title="随机游走",
+                            content_list=[
+                                container_line(
+                                    [
+                                        html.Button(
+                                            "开始随机游走",
+                                            id="random-walk-btn",
+                                            n_clicks=0,
+                                            style=RANDOM_WALK_START_BUTTON_STYLE,
+                                        ),
+                                        html.Button(
+                                            "停止随机游走",
+                                            id="stop-walk-btn",
+                                            n_clicks=0,
+                                            style={"display": "none"},  # 初始隐藏
+                                        ),
+                                        html.Button(
+                                            "保存游走单词序列",
+                                            id="save-walk-btn",
+                                            n_clicks=0,
+                                            style=get_save_walk_button_style(
+                                                enabled=False
+                                            ),
+                                            disabled=True,  # 初始禁用
+                                        ),
+                                    ]
                                 ),
+                                dcc.Download(id="download-walk-sequence"),
                             ],
-                            style={
-                                "display": "flex",
-                                "justifyContent": "center",
-                                "alignItems": "center",
-                                "gap": "8px",
-                                "marginBottom": "20px",  # 增加底部间距
-                            },
                         ),
-                        # 删除 bridge-result div，将结果合并到 node-info
-                        # 注意：node-info 的标题修改为更加通用的名称
-                        html.H3(
-                            "节点与查询信息",  # 修改标题为更通用的名称
-                            style={
-                                "textAlign": "center",
-                                "marginTop": "0px",
-                                "marginBottom": "10px",
-                                "color": "#0077B6",
-                                "fontWeight": "bold",
-                                "letterSpacing": "2px",
-                            },
-                        ),
-                        # 添加随机游走按钮和容器
-                        html.Div(
-                            [
-                                html.Button(
-                                    "开始随机游走",
-                                    id="random-walk-btn",
-                                    n_clicks=0,
-                                    style={
-                                        "fontSize": "15px",
-                                        "padding": "7px 18px",
-                                        "backgroundColor": "#9c27b0",
-                                        "color": "#fff",
-                                        "border": "none",
-                                        "borderRadius": "4px",
-                                        "cursor": "pointer",
-                                        "marginTop": "10px",
-                                        "width": "100%",
-                                    },
-                                ),
-                                html.Button(
-                                    "停止随机游走",
-                                    id="stop-walk-btn",
-                                    n_clicks=0,
-                                    style={
-                                        "display": "none",  # 初始隐藏
-                                        "fontSize": "15px",
-                                        "padding": "7px 18px",
-                                        "backgroundColor": "#e53935",
-                                        "color": "#fff",
-                                        "border": "none",
-                                        "borderRadius": "4px",
-                                        "cursor": "pointer",
-                                        "marginTop": "10px",
-                                        "width": "100%",
-                                    },
-                                ),
+                        module_container(
+                            title="文本桥接生成",
+                            content_list=[
+                                container_line(
+                                    [
+                                        dcc.Textarea(
+                                            id="bridge-text-input",
+                                            placeholder="输入文本，将自动插入桥接词...",
+                                            style=get_textarea_style(),
+                                        ),
+                                        html.Button(
+                                            id="generate-bridge-text-btn",
+                                            n_clicks=0,
+                                            children="生成",
+                                            disabled=False,
+                                            style=get_bridge_text_button_style(
+                                                enabled=True
+                                            ),
+                                        ),
+                                    ]
+                                )
                             ],
-                            id="random-walk-container",
-                            style={"marginBottom": "10px"},
                         ),
+                        # 结果显示区域
                         html.Div(
                             id="node-info",
-                            children=welcome_message(),  # 设置初始欢迎信息
+                            children=welcome_message(),
                             style={
-                                "border": "1px solid #ddd",
-                                "padding": "18px 15px",
-                                "borderRadius": "7px",
-                                "backgroundColor": "#f9f9f9",
-                                "minHeight": "540px",
-                                "margin": "0px 0",
+                                **MODULE_CONTAINER_STYLE,
+                                "flex": "1",
+                                "minHeight": "200px",
+                                "height": "calc(100vh - 550px)",
                                 "overflowY": "auto",
-                                "boxShadow": "0 1px 6px #e0e0e0",
                             },
                         ),
                     ],
                     style={
                         "width": "30%",
+                        "height": "calc(100vh - 70px)",
+                        "minHeight": "375px",
                         "display": "inline-block",
                         "verticalAlign": "top",
                         "marginLeft": "3%",
                         "minWidth": "320px",
                         "maxWidth": "420px",
+                        "padding": "12px 12px 0 12px",
+                        "borderRadius": "8px",
+                        "boxShadow": "0 1px 4px #e0e0e0",
+                        "overflowY": "auto",
                     },
                 ),
             ],
             style={"width": "95%", "maxWidth": "1600px", "margin": "0 auto"},
         ),
     ],
-    style={"fontFamily": "Arial, sans-serif", "padding": "10px"},
+    style={"fontFamily": "Arial, sans-serif", "padding": "20px 10px 10px 10px"},
 )
-
 
 register_callbacks(app)
 

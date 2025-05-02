@@ -1,7 +1,7 @@
 from dash import Output, Input
 import dash
-from message_templates import welcome_message
-from styles.basic_style import get_reset_style_state
+from layouts.message_templates import welcome_message
+from styles.basic_styles import get_reset_style_state
 
 
 def register_clear_callback(app):
@@ -21,12 +21,6 @@ def register_clear_callback(app):
                 dash.no_update,
                 dash.no_update,
             )
-        # style_state = {
-        #     "selected_nodes": [],
-        #     "bridge_words": [],
-        #     "highlighted_edges": [],
-        #     "base_style_applied": True,
-        # }
         style_state = get_reset_style_state()
         # 使用欢迎信息模板
         return (

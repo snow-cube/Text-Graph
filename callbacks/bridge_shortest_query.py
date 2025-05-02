@@ -2,7 +2,7 @@ from dash import Output, Input, State
 import dash
 from graph_process_utils.bridge_utils import process_bridge_words
 from graph_process_utils.shortest_path_utils import process_shortest_path
-from message_templates import bridge_result_message, shortest_path_result_message
+from layouts.message_templates import bridge_result_message, shortest_path_result_message
 
 
 def register_bridge_shortest_query_callback(app):
