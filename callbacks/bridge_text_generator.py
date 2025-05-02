@@ -1,7 +1,7 @@
-from dash import Output, Input, State, html
-import dash
+from dash import Output, Input, State
 from text_graph import TextGraph
-from message_templates import bridge_text_result_message
+from layouts.message_templates import bridge_text_result_message
+
 
 def register_bridge_text_generator_callback(app):
     @app.callback(
@@ -27,4 +27,6 @@ def register_bridge_text_generator_callback(app):
             # Use message template for consistent UI
             return bridge_text_result_message(input_text, result_text)
         except Exception as e:
-            return bridge_text_result_message(input_text, f"处理错误: {str(e)}", is_error=True)
+            return bridge_text_result_message(
+                input_text, f"处理错误: {str(e)}", is_error=True
+            )

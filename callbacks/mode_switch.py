@@ -2,7 +2,7 @@ from dash import Output, Input, State
 import dash
 from graph_process_utils.bridge_utils import process_bridge_words
 from graph_process_utils.shortest_path_utils import process_shortest_path
-from message_templates import bridge_result_message, shortest_path_result_message
+from layouts.message_templates import bridge_result_message, shortest_path_result_message
 
 
 def register_mode_switch_callback(app):
@@ -15,7 +15,7 @@ def register_mode_switch_callback(app):
         [
             State("graph-store", "data"),
             State("style-store", "data"),
-            State("graph-display-state", "data"),  # Add display state
+            State("graph-display-state", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -26,7 +26,7 @@ def register_mode_switch_callback(app):
             return dash.no_update, dash.no_update
 
         # Check if graph is displayed
-        is_graph_displayed = display_state.get('show', False)
+        is_graph_displayed = display_state.get("show", False)
 
         word1, word2 = selected_nodes
         if word1 and word2 and word1 != word2:

@@ -1,6 +1,6 @@
 from dash import Output, Input, State
 import dash
-from message_templates import warning_message
+from layouts.message_templates import warning_message
 from text_graph import TextGraph
 from graph_process_utils.node_info_utils import process_node_info
 
@@ -19,7 +19,7 @@ def register_node_query_callback(app):
             State("graph-store", "data"),
             State("random-walk-store", "data"),
             State("pagerank-store", "data"),
-            State("graph-display-state", "data"),  # 添加图显示状态
+            State("graph-display-state", "data"),
         ],
         prevent_initial_call=True,
     )
@@ -54,7 +54,6 @@ def register_node_query_callback(app):
         # 检查图是否显示
         is_graph_displayed = display_state.get("show", False)
 
-        # 使用提取的通用函数处理节点信息，不再传入elements参数
         node_info, updated_style = process_node_info(
             node_name, style_state, pagerank_data, graph_text, is_graph_displayed
         )

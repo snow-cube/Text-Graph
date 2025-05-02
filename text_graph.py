@@ -7,7 +7,6 @@ class TextGraph:
         self.text = text
         self.nodes = set()
         self.edge_count = defaultdict(int)
-        # 添加邻接表结构，提高图操作效率
         self.out_edges = defaultdict(list)  # 存储每个节点的出边
         self.in_edges = defaultdict(list)  # 存储每个节点的入边
         self._parse_text()
@@ -22,7 +21,7 @@ class TextGraph:
             self.nodes.add(a)
             self.nodes.add(b)
 
-        # 构建邻接表，提高后续操作效率
+        # 构建邻接表
         for (src, tgt), weight in self.edge_count.items():
             self.out_edges[src].append((tgt, weight))
             self.in_edges[tgt].append((src, weight))

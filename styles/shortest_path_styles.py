@@ -1,41 +1,41 @@
-def get_bridge_word_style(word):
-    # 橙黄色高亮桥接词节点，弱于选中节点
+def get_shortest_path_node_style(word):
+    # 高亮最短路节点
     return {
         "selector": f"node[id = '{word}']",
         "style": {
-            "background-color": "#ffe082",  # 柔和橙黄
-            "border-color": "#ffb300",
+            "background-color": "#e1bee7",
+            "border-color": "#ba68c8",
             "border-width": 3,
-            "text-outline-color": "#ffb300",
-            "shadow-color": "#ffe082",
+            "text-outline-color": "#ba68c8",
+            "shadow-color": "#e1bee7",
             "shadow-blur": 8,
             "shadow-opacity": 0.5,
             "font-size": "18px",
-            "z-index": 2,
+            "z-index": 3,
         },
     }
 
 
-def get_bridge_edge_style(source, target):
-    # 桥接词边：黄色调
+def get_shortest_path_edge_style(source, target):
+    # 高亮最短路边
     return {
         "selector": f"edge[source = '{source}'][target = '{target}']",
         "style": {
-            "line-color": "#ffb300",  # 明亮黄色
-            "target-arrow-color": "#ffb300",
+            "line-color": "#ba68c8",
+            "target-arrow-color": "#ba68c8",
             "width": 5,
             "opacity": 1,
             "z-index": 999,
             "line-style": "solid",
             "arrow-scale": 1.5,
             "text-background-opacity": 1,
-            "text-background-color": "#fff8e1",  # 极浅黄
+            "text-background-color": "#ede7f6",
             "text-background-shape": "round-rectangle",
             "text-border-width": 1,
-            "text-border-color": "#ffb300",
+            "text-border-color": "#ba68c8",
             "text-border-opacity": 0.8,
             "font-size": "14px",
-            "color": "#ff8f00",  # 深黄字体
+            "color": "#7b1fa2",
             "font-weight": "bold",
         },
     }

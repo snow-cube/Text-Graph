@@ -3,7 +3,7 @@ import dash
 from graph_process_utils.bridge_utils import process_bridge_words
 from graph_process_utils.shortest_path_utils import process_shortest_path
 from graph_process_utils.node_info_utils import process_node_info
-from message_templates import (
+from layouts.message_templates import (
     welcome_message,
     warning_message,
     bridge_result_message,

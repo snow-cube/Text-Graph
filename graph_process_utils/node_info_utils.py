@@ -1,4 +1,4 @@
-from message_templates import node_info_message
+from layouts.message_templates import node_info_message
 from text_graph import TextGraph
 
 

@@ -7,9 +7,9 @@ from graph_process_utils.random_walk_utils import (
     update_style_for_walk,
     stop_random_walk_helper,
 )
-from styles.basic_style import get_reset_style_state
+from styles.basic_styles import get_reset_style_state
 from text_graph import TextGraph
-from message_templates import random_walk_result_message
+from layouts.message_templates import random_walk_result_message
 
 
 def register_random_walk_callback(app):
@@ -17,7 +17,6 @@ def register_random_walk_callback(app):
         [
             Output("random-walk-store", "data"),
             Output("random-walk-interval", "disabled", allow_duplicate=True),
-            Output("random-walk-container", "style", allow_duplicate=True),
             Output("style-store", "data", allow_duplicate=True),
             Output("ui-state-store", "data"),
         ],
@@ -25,15 +24,13 @@ def register_random_walk_callback(app):
         [
             State("graph-store", "data"),
             State("random-walk-store", "data"),
-            State("style-store", "data"),
             State("ui-state-store", "data"),
         ],
         prevent_initial_call=True,
     )
-    def start_random_walk(n_clicks, graph_text, walk_state, style_state, ui_state):
+    def start_random_walk(n_clicks, graph_text, walk_state, ui_state):
         if not n_clicks:
             return (
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -41,12 +38,12 @@ def register_random_walk_callback(app):
             )
 
         if not graph_text:
-            return {}, True, dash.no_update, dash.no_update, dash.no_update
+            return {}, True, dash.no_update, dash.no_update
 
         # 初始化随机游走状态
         tg = TextGraph(graph_text)
         if not tg.nodes:
-            return {}, True, dash.no_update, dash.no_update, dash.no_update
+            return {}, True, dash.no_update, dash.no_update
 
         # 随机选择起始节点
         current_node = random.choice(list(tg.nodes))
@@ -73,15 +70,13 @@ def register_random_walk_callback(app):
         # 激活间隔计时器，开始逐步游走
         interval_disabled = False
 
-        # 显示随机游走容器
-        random_walk_container_style = {"display": "block"}
-
         # 更新 UI 状态 - 进入游走状态
         updated_ui_state = ui_state.copy() if ui_state else {}
         updated_ui_state.update(
             {
                 "walk_active": True,
                 "save_enabled": False,
+                # "save_enabled": True,
                 "query_enabled": False,
             }
         )
@@ -89,7 +84,6 @@ def register_random_walk_callback(app):
         return (
             walk_state,
             interval_disabled,
-            random_walk_container_style,
             reset_style,
             updated_ui_state,
         )
@@ -230,7 +224,6 @@ def register_random_walk_callback(app):
     @app.callback(
         [
             Output("random-walk-interval", "disabled", allow_duplicate=True),
-            Output("random-walk-container", "style", allow_duplicate=True),
             Output("style-store", "data", allow_duplicate=True),
             Output("node-info", "children", allow_duplicate=True),
             Output("random-walk-store", "data", allow_duplicate=True),
@@ -251,7 +244,6 @@ def register_random_walk_callback(app):
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
-                dash.no_update,
             )
 
         # 使用辅助函数处理停止逻辑，自动根据游走节点数量决定是否启用保存按钮
@@ -260,7 +252,6 @@ def register_random_walk_callback(app):
     @app.callback(
         [
             Output("random-walk-interval", "disabled", allow_duplicate=True),
-            Output("random-walk-container", "style", allow_duplicate=True),
             Output("style-store", "data", allow_duplicate=True),
             Output("node-info", "children", allow_duplicate=True),
             Output("random-walk-store", "data", allow_duplicate=True),
@@ -277,7 +268,6 @@ def register_random_walk_callback(app):
         # Don't stop if no walk is active
         if not walk_state or not walk_state.get("is_active", False):
             return (
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -312,7 +302,7 @@ def register_random_walk_callback(app):
 
         # 生成下载数据
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"随机游走序列_{timestamp}.txt"
+        filename = f"random_walk_{timestamp}.txt"
 
         return dict(
             content=content,

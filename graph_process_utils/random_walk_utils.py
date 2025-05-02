@@ -1,11 +1,9 @@
-from styles.basic_style import get_reset_style_state
-from message_templates import welcome_message
+from styles.basic_styles import get_reset_style_state
+from layouts.message_templates import welcome_message
 
 
 # 更新样式以显示随机游走
 def update_style_for_walk(style_state, walked_nodes, walked_edges):
-    # style_state["selected_nodes"] = []
-    # style_state["bridge_words"] = []
     style_state["random_walk_nodes"] = walked_nodes
 
     # 添加起始节点和当前节点的特殊标记
@@ -36,16 +34,13 @@ def stop_random_walk_helper(
         save_enabled: 是否启用保存按钮，None 时自动根据游走节点数量决定
 
     Returns:
-        适用于新回调函数的元组 (interval_disabled, container_style, style_state, message, walk_state, ui_state)
+        适用于新回调函数的元组 (interval_disabled, style_state, message, walk_state, ui_state)
     """
     # 停用间隔计时器
     interval_disabled = True
 
     # 重置样式状态
     reset_style = get_reset_style_state()
-
-    # 显示随机游走容器
-    random_walk_container_style = {"display": "block"}
 
     # 更新游走状态
     if walk_state:
@@ -73,7 +68,6 @@ def stop_random_walk_helper(
 
     return (
         interval_disabled,
-        random_walk_container_style,
         reset_style,
         welcome_message(),  # 重置为欢迎信息
         walk_state,

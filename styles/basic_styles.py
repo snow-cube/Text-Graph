@@ -4,14 +4,14 @@ def get_base_stylesheet():
             "selector": "node",
             "style": {
                 "label": "data(label)",
-                "background-color": "#1ecbe1",  # 明亮青蓝色
+                "background-color": "#1ecbe1",
                 "color": "#FFFFFF",
                 "font-size": "18px",
                 "font-weight": "bold",
                 "text-valign": "center",
                 "text-halign": "center",
                 "border-width": 2,
-                "border-color": "#008080",  # 更加明显的青色
+                "border-color": "#008080",
                 "shape": "ellipse",
                 "width": "45px",
                 "height": "45px",

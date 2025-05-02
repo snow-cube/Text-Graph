@@ -1,16 +1,17 @@
 """
 UI 状态控制模块
-根据UI状态更新按钮样式和禁用状态
+根据 UI 状态更新按钮样式和禁用状态
 """
 
 from dash import Output, Input
-from styles.button_styles import (
+from styles.button_input_styles import (
     RANDOM_WALK_START_BUTTON_STYLE,
     RANDOM_WALK_STOP_BUTTON_STYLE,
     RANDOM_WALK_STOP_BUTTON_HIDDEN_STYLE,
     get_save_walk_button_style,
     get_query_button_style,
     get_node_query_button_style,
+    get_bridge_text_button_style,
 )
 
 
@@ -33,6 +34,10 @@ def register_ui_controls_callback(app):
             Output("node-query-input", "disabled"),
             Output("node-query-btn", "disabled"),
             Output("node-query-btn", "style"),
+            # 文本桥接生成控制
+            Output("generate-bridge-text-btn", "disabled"),
+            Output("generate-bridge-text-btn", "style"),
+            Output("bridge-text-input", "disabled"),
         ],
         [Input("ui-state-store", "data")],
         prevent_initial_call=True,
@@ -72,6 +77,9 @@ def register_ui_controls_callback(app):
         query_btn_style = get_query_button_style(enabled=query_enabled)
         node_query_btn_style = get_node_query_button_style(enabled=query_enabled)
 
+        # 文本桥接生成按钮状态
+        bridge_text_btn_style = get_bridge_text_button_style(enabled=query_enabled)
+
         return (
             random_walk_btn_style,
             stop_walk_btn_style,
@@ -84,4 +92,7 @@ def register_ui_controls_callback(app):
             query_disabled,
             query_disabled,
             node_query_btn_style,
+            query_disabled,
+            bridge_text_btn_style,
+            query_disabled,
         )
