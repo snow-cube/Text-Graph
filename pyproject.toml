@@ -1,7 +1,7 @@
 [project]
 name = "text-graph"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Dash-based tool for word graph visualization"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
