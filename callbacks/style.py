@@ -20,21 +20,24 @@ from styles.random_walk_styles import (
     get_random_walk_start_node_style,
     get_random_walk_current_node_style,
 )
+from styles.pagerank_styles import get_pagerank_node_style
 
 
 def register_style_callback(app):
     @app.callback(
         Output("cytoscape", "stylesheet"),
-        Input("style-store", "data"),
-        State("graph-display-state", "data"),
+        [Input("style-store", "data"), Input("pagerank-store", "data")],
+        [State("graph-display-state", "data")],
         prevent_initial_call=True,
     )
-    def update_stylesheet(style_state, display_state):
+    def update_stylesheet(style_state, pagerank_data, display_state):
         # 只在图显示时更新样式
         if not display_state or not display_state.get("show", False):
             return get_base_stylesheet()
 
         stylesheet = get_base_stylesheet()
+
+        # 处理选中节点样式
         selected_nodes = style_state.get("selected_nodes", [])
         if len(selected_nodes) >= 1:
             stylesheet.append(get_first_selected_node_style(selected_nodes[0]))
@@ -69,6 +72,12 @@ def register_style_callback(app):
             for node in random_walk_nodes:
                 if node != start_node and node != current_node:
                     stylesheet.append(get_random_walk_node_style(node))
+
+        # 应用 PageRank 样式（如果有数据），在其他节点样式之后添加，确保不会被覆盖
+        # 为了更清晰地显示 PageRank 值，固定了更小的字号等样式，不应被选中样式、随机游走样式等覆盖，因为后者也可能修改节点的字号等样式
+        if pagerank_data and "formatted" in pagerank_data:
+            for node_id, pagerank_value in pagerank_data["formatted"].items():
+                stylesheet.append(get_pagerank_node_style(node_id, pagerank_value))
 
         # Apply edge styles in the correct order
         for edge in style_state.get("highlighted_edges", []):
