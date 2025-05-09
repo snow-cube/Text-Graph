@@ -2,20 +2,22 @@ from layouts.message_templates import node_info_message
 from text_graph import TextGraph
 
 
-def process_node_info(node_name, style_state, pagerank_data, graph_text, is_graph_displayed=True):
+def process_node_info(
+    node_name, style_state, pagerank_data, graph_text, is_graph_displayed=True
+):
     """
     处理节点信息的通用函数，用于获取节点的边信息并更新样式状态
 
     Args:
         node_name: 节点名称
         style_state: 当前样式状态
-        pagerank_data: PageRank数据（如果有）
+        pagerank_data: PageRank 数据（如果有）
         graph_text: 图的文本数据
-        is_graph_displayed: 是否显示图形（若为False则不更新style_state）
+        is_graph_displayed: 是否显示图形（若为 False 则不更新 style_state）
 
     Returns:
         tuple: (node_info_component, updated_style_state)
-            - node_info_component: 包含节点信息的Dash组件
+            - node_info_component: 包含节点信息的 Dash 组件
             - updated_style_state: 更新后的样式状态
     """
     # 收集节点的入边和出边
@@ -23,7 +25,7 @@ def process_node_info(node_name, style_state, pagerank_data, graph_text, is_grap
     in_edges = []
     out_edges = []
 
-    # 创建TextGraph对象获取边信息
+    # 创建 TextGraph 对象获取边信息
     graph = TextGraph(graph_text)
 
     # 获取入边
@@ -40,7 +42,7 @@ def process_node_info(node_name, style_state, pagerank_data, graph_text, is_grap
             {"source": node_name, "target": target_node, "type": "out"}
         )
 
-    # 只有当图被显示时才更新style_state
+    # 只有当图被显示时才更新 style_state
     if is_graph_displayed:
         # 重置样式中的查询相关状态
         style_state["bridge_words"] = []
@@ -48,7 +50,7 @@ def process_node_info(node_name, style_state, pagerank_data, graph_text, is_grap
         # 更新高亮边
         style_state["highlighted_edges"] = highlighted_edges
 
-    # 获取PageRank数据（如果有）
+    # 获取 PageRank 数据（如果有）
     pr_formatted = None
     if pagerank_data and "formatted" in pagerank_data:
         pr_formatted = pagerank_data["formatted"]

@@ -95,6 +95,52 @@ class TextGraph:
                     heapq.heappush(heap, (new_cost, neighbor, path + [neighbor]))
         return [], 0
 
+    def get_all_shortest_paths(self, word):
+        """
+        计算从给定单词到所有其他节点的最短路径
+
+        Args:
+            word: 起始单词
+
+        Returns:
+            dict: 字典，键为目标节点，值为元组 (path, total_weight)
+        """
+        import heapq
+
+        word = word.lower()
+        if word not in self.nodes:
+            return {}
+
+        # 初始化数据结构
+        result = {}
+        heap = []
+        heapq.heappush(heap, (0, word, [word]))
+        visited = {}
+
+        while heap:
+            cost, current, path = heapq.heappop(heap)
+
+            # 如果已经找到更短的路径到达当前节点，跳过
+            if current in visited and visited[current] <= cost:
+                continue
+
+            # 更新当前节点的访问状态
+            visited[current] = cost
+
+            # 如果不是起始节点，则保存结果
+            if current != word:
+                result[current] = (path, cost)
+
+            # 探索邻居节点
+            for neighbor, edge_weight in self.out_edges.get(current, []):
+                new_cost = cost + edge_weight
+                if neighbor not in visited or new_cost < visited.get(
+                    neighbor, float("inf")
+                ):
+                    heapq.heappush(heap, (new_cost, neighbor, path + [neighbor]))
+
+        return result
+
     def get_in_edges(self, node):
         """
         返回指向指定节点的所有入边

@@ -86,6 +86,19 @@ CARD_STYLE = {
 # 分隔线样式
 DIVIDER_STYLE = {"margin": "5px 0", "borderTop": "1px solid #eee"}
 
+ALL_PATHS_RESULT_STYLE = {
+    "fontWeight": "normal",
+    "color": "#7b1fa2",
+    "margin": "12px 0",
+    "padding": "6px",
+    "backgroundColor": "#f3e5f5",
+    "borderRadius": "4px",
+    "fontSize": "14px",
+    "whiteSpace": "pre-wrap",  # 保留换行符
+    "maxHeight": "400px",
+    "overflowY": "auto",
+}
+
 
 def welcome_message():
     """返回欢迎信息组件"""
@@ -287,12 +300,19 @@ def bridge_result_message(msg_text):
 
 def shortest_path_result_message(msg_text):
     """返回最短路径查询结果组件"""
+    # 使用预定义的样式，如果包含“所有节点的最短路径”则使用支持换行的样式
+    style_to_use = (
+        ALL_PATHS_RESULT_STYLE
+        if "到所有节点的最短路径" in msg_text
+        else SHORTEST_PATH_RESULT_STYLE
+    )
+
     return [
         html.H4("最短路径查询结果", style=TITLE_STYLE),
         html.Hr(style=DIVIDER_STYLE),
         html.Div(
             [
-                html.P(msg_text, style=SHORTEST_PATH_RESULT_STYLE),
+                html.P(msg_text, style=style_to_use),
             ],
             style=CARD_STYLE,
         ),

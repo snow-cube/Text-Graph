@@ -9,7 +9,7 @@ def process_bridge_words(
     Args:
         word1: 第一个单词
         word2: 第二个单词
-        text_graph: TextGraph实例或原始文本
+        text_graph: TextGraph 实例或原始文本
         elements: 图的元素列表
         style_state: 当前样式状态字典
         is_graph_displayed: 图形是否显示
@@ -25,9 +25,11 @@ def process_bridge_words(
     if not word1 or not word2 or word1 == word2:
         return [], f"请提供两个不同的单词", style_state
 
+    word1 = word1.lower()
+    word2 = word2.lower()
     # 检查单词是否存在于图中
-    word1_exists = word1.lower() in tg.nodes
-    word2_exists = word2.lower() in tg.nodes
+    word1_exists = word1 in tg.nodes
+    word2_exists = word2 in tg.nodes
 
     if not word1_exists and not word2_exists:
         return [], f"单词 '{word1}' 和 '{word2}' 都不存在于图中", style_state
@@ -46,12 +48,9 @@ def process_bridge_words(
         style_state["shortest_path"] = []
         style_state["bridge_words"] = bridges
 
-        # 只有当单词在图中存在时，才添加到选中节点列表
         selected_nodes = []
-        if word1 in tg.nodes:
-            selected_nodes.append(word1)
-        if word2 in tg.nodes:
-            selected_nodes.append(word2)
+        selected_nodes.append(word1)
+        selected_nodes.append(word2)
         style_state["selected_nodes"] = selected_nodes
 
         # 合并从 TextGraph 实例获取的边信息
@@ -59,7 +58,7 @@ def process_bridge_words(
         style_state["highlighted_edges"] = highlighted_edges
 
     if bridges:
-        msg = f"桥接词（{word1} → ? → {word2}）：" + "，".join(bridges)
+        msg = f"桥接词 ({word1} → ? → {word2}): " + ", ".join(bridges)
     else:
         msg = f"未找到 {word1} → ? → {word2} 的桥接词"
 
